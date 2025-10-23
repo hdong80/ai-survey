@@ -45,6 +45,10 @@ Request: ${prompt}`);
 
     const result = await Promise.race([apiPromise, timeoutPromise]) as any;
 
+    if (!result || !result.response) {
+      throw new Error('Invalid API response');
+    }
+
     const responseText = result.response.text();
 
     const clean = (text: string) => {
@@ -59,8 +63,13 @@ Request: ${prompt}`);
 
     let parsed: any;
     try {
-      parsed = JSON.parse(clean(responseText));
+      const cleanedText = clean(responseText);
+      if (!cleanedText || cleanedText.trim() === '') {
+        throw new Error('Empty response');
+      }
+      parsed = JSON.parse(cleanedText);
     } catch (e) {
+      console.error('JSON parsing failed:', e);
       // fallback minimal structure
       parsed = { title: 'AI 설문', description: '', questions: [] };
     }
