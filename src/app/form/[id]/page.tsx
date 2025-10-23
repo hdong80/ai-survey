@@ -1,5 +1,14 @@
 import { DynamicForm } from '@/components/DynamicForm';
 
+// Static generation for export
+export async function generateStaticParams() {
+  return [
+    { id: 'demo' },
+    { id: 'counseling' },
+    { id: 'survey' }
+  ];
+}
+
 // Demo renderer: In production, fetch form schema by id from Supabase
 export default function FormPage({ params }: { params: { id: string } }) {
   const demo = {
