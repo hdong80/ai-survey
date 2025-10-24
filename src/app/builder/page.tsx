@@ -11,15 +11,91 @@ export default function BuilderPage() {
   const generate = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/generateForm', {
+      // 클라이언트 사이드에서 직접 Google Gemini API 호출
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDnP1uDj3iHsaNIBF-tLaV42nvFGxkoBMY', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Create a Korean survey form. Return only valid JSON.
+
+Format:
+{
+  "title": "Survey Title",
+  "description": "Survey Description", 
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Question text",
+      "type": "text",
+      "required": true
+    }
+  ]
+}
+
+Request: ${prompt}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        })
       });
-      const json = await res.json();
-      setSchema(json);
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!responseText) {
+        throw new Error('No response from API');
+      }
+
+      // JSON 파싱
+      const clean = (text: string) => {
+        const fenced = text.match(/```json\n([\s\S]*?)\n```/i);
+        if (fenced) return fenced[1];
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) return text.slice(start, end + 1);
+        return text.trim();
+      };
+
+      const cleanedText = clean(responseText);
+      const parsed = JSON.parse(cleanedText);
+
+      // 질문 정규화
+      if (Array.isArray(parsed.questions)) {
+        parsed.questions = parsed.questions.map((q: any, idx: number) => ({
+          id: q.id || `q_${idx + 1}`,
+          label: q.label || `문항 ${idx + 1}`,
+          type: q.type || 'text',
+          required: Boolean(q.required),
+          options: Array.isArray(q.options) ? q.options : undefined,
+        }));
+      }
+
+      setSchema(parsed);
     } catch (error) {
       console.error('Error generating form:', error);
+      // 오류 시 기본 설문 생성
+      const fallbackSchema = {
+        title: 'AI 설문',
+        description: '요청하신 내용을 바탕으로 생성된 설문입니다.',
+        questions: [
+          { id: 'name', label: '이름', type: 'text', required: true },
+          { id: 'opinion', label: '의견을 작성해 주세요', type: 'textarea', required: false }
+        ]
+      };
+      setSchema(fallbackSchema);
     } finally {
       setLoading(false);
     }
