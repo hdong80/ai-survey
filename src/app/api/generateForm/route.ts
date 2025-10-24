@@ -49,6 +49,11 @@ Request: ${prompt}`);
     }
 
     const responseText = result.response.text();
+    
+    // API 응답이 비어있거나 오류인 경우
+    if (!responseText || responseText.trim() === '') {
+      throw new Error('Empty API response');
+    }
 
     const clean = (text: string) => {
       // strip code fences and non-json pre/post text
