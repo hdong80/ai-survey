@@ -11,8 +11,8 @@ export default function BuilderPage() {
   const generate = async () => {
     setLoading(true);
     try {
-      // Google Gemini API 직접 호출
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDnP1uDj3iHsaNIBF-tLaV42nvFGxkoBMY', {
+      // Google Gemini API 직접 호출 (올바른 엔드포인트)
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyDnP1uDj3iHsaNIBF-tLaV42nvFGxkoBMY', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,10 +53,16 @@ export default function BuilderPage() {
       }
 
       const data = await response.json();
-      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      // API 응답 구조 확인
+      if (!data.candidates || data.candidates.length === 0) {
+        throw new Error('No candidates in API response');
+      }
+      
+      const responseText = data.candidates[0]?.content?.parts?.[0]?.text;
 
       if (!responseText) {
-        throw new Error('No response from API');
+        throw new Error('No text content in API response');
       }
 
       // JSON 파싱
@@ -404,13 +410,13 @@ export default function BuilderPage() {
                 fontWeight: 'bold',
                 color: '#333'
               }}>
-                🔒 접근 비밀번호 (선택사항)
+                🔐 관리자 비밀번호 (필수)
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="비밀번호를 입력하면 보호된 설문이 됩니다"
+                placeholder="통계를 보기 위한 관리자 비밀번호를 설정하세요"
                 style={{
                   width: '100%',
                   padding: '0.8rem',
@@ -421,13 +427,14 @@ export default function BuilderPage() {
                   transition: 'border-color 0.3s ease',
                   boxSizing: 'border-box'
                 }}
+                required
               />
               <p style={{ 
                 margin: '0.5rem 0 0 0', 
                 fontSize: '0.9rem', 
                 color: '#666' 
               }}>
-                비워두면 누구나 접근 가능한 공개 설문이 됩니다
+                💡 이 비밀번호로 설문 통계를 볼 수 있습니다. 응답자들은 비밀번호 없이 설문에 참여합니다.
               </p>
             </div>
 
@@ -446,7 +453,7 @@ export default function BuilderPage() {
                   });
                   const json = await res.json();
                   if (json.formId) {
-                    alert(`설문이 생성되었습니다!\nURL: ${window.location.origin}/form/${json.formId}`);
+                    alert(`🎉 설문이 생성되었습니다!\n\n📋 설문 참여 링크:\n${window.location.origin}/form/${json.formId}\n\n📊 통계 보기 링크:\n${window.location.origin}/results/${json.formId}\n\n💡 통계를 보려면 설정한 관리자 비밀번호가 필요합니다.`);
                     location.href = `/form/${json.formId}`;
                   }
                 } catch (error) {
@@ -468,7 +475,7 @@ export default function BuilderPage() {
                 boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
               }}
             >
-              🚀 설문 저장 및 배포하기
+              🚀 설문 생성 및 배포하기
             </button>
           </div>
         )}
