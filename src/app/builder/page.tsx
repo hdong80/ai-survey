@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { DynamicForm } from '@/components/DynamicForm';
 
 export default function BuilderPage() {
-  const [prompt, setPrompt] = useState('상담 설문: 학습 고민, 스트레스 원인, 지원 희망');
+  const [prompt, setPrompt] = useState('');
   const [schema, setSchema] = useState<any | null>(null);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
