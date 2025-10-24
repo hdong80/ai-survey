@@ -11,8 +11,8 @@ export default function BuilderPage() {
   const generate = async () => {
     setLoading(true);
     try {
-      // 클라이언트 사이드에서 직접 Google Gemini API 호출
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDnP1uDj3iHsaNIBF-tLaV42nvFGxkoBMY', {
+      // Google Gemini API 직접 호출
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDnP1uDj3iHsaNIBF-tLaV42nvFGxkoBMY', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -20,30 +20,30 @@ export default function BuilderPage() {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Create a Korean survey form. Return only valid JSON.
+              text: `한국어로 설문지를 만들어주세요. 다음 형식의 JSON만 반환해주세요:
 
-Format:
 {
-  "title": "Survey Title",
-  "description": "Survey Description", 
+  "title": "설문 제목",
+  "description": "설문 설명",
   "questions": [
     {
       "id": "q1",
-      "label": "Question text",
-      "type": "text",
-      "required": true
+      "label": "질문 내용",
+      "type": "text|textarea|radio|checkbox|select|number|email",
+      "required": true,
+      "options": ["선택지1", "선택지2"] // radio, checkbox, select일 때만
     }
   ]
 }
 
-Request: ${prompt}`
+요청사항: ${prompt}`
             }]
           }],
           generationConfig: {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
           }
         })
       });
@@ -86,14 +86,50 @@ Request: ${prompt}`
       setSchema(parsed);
     } catch (error) {
       console.error('Error generating form:', error);
-      // 오류 시 기본 설문 생성
-      const fallbackSchema = {
-        title: 'AI 설문',
-        description: '요청하신 내용을 바탕으로 생성된 설문입니다.',
-        questions: [
+      // 오류 시 프롬프트 기반 간단한 설문 생성
+      const simpleQuestions = [];
+      const promptText = String(prompt);
+      
+      if (promptText.includes('학생') || promptText.includes('교육') || promptText.includes('학습')) {
+        simpleQuestions.push(
+          { id: 'grade', label: '학년', type: 'select', required: true, options: ['1학년', '2학년', '3학년'] },
+          { id: 'subject', label: '가장 관심 있는 과목', type: 'text', required: true },
+          { id: 'difficulty', label: '학습 난이도', type: 'radio', required: true, options: ['쉬움', '보통', '어려움'] },
+          { id: 'stress', label: '주요 스트레스 요인', type: 'checkbox', required: false, options: ['성적', '친구관계', '가족', '미래진로'] },
+          { id: 'support', label: '필요한 지원', type: 'textarea', required: false }
+        );
+      } else if (promptText.includes('만족도') || promptText.includes('평가') || promptText.includes('후기')) {
+        simpleQuestions.push(
+          { id: 'satisfaction', label: '전체적인 만족도', type: 'radio', required: true, options: ['매우 만족', '만족', '보통', '불만족', '매우 불만족'] },
+          { id: 'strength', label: '좋았던 점', type: 'textarea', required: false },
+          { id: 'improvement', label: '개선이 필요한 점', type: 'textarea', required: false },
+          { id: 'recommend', label: '다른 사람에게 추천하시겠습니까?', type: 'radio', required: true, options: ['매우 추천', '추천', '보통', '비추천'] }
+        );
+      } else if (promptText.includes('상담') || promptText.includes('고민') || promptText.includes('심리')) {
+        simpleQuestions.push(
           { id: 'name', label: '이름', type: 'text', required: true },
-          { id: 'opinion', label: '의견을 작성해 주세요', type: 'textarea', required: false }
-        ]
+          { id: 'age', label: '나이', type: 'number', required: true },
+          { id: 'concern', label: '주요 고민사항', type: 'textarea', required: true },
+          { id: 'duration', label: '고민 기간', type: 'select', required: true, options: ['1개월 미만', '1-3개월', '3-6개월', '6개월 이상'] },
+          { id: 'support_type', label: '원하는 지원 유형', type: 'checkbox', required: false, options: ['개별 상담', '그룹 상담', '전화 상담', '온라인 상담'] },
+          { id: 'additional', label: '추가 의견', type: 'textarea', required: false }
+        );
+      } else {
+        // 일반적인 설문
+        simpleQuestions.push(
+          { id: 'name', label: '이름', type: 'text', required: true },
+          { id: 'email', label: '이메일', type: 'email', required: false },
+          { id: 'opinion', label: '의견을 작성해 주세요', type: 'textarea', required: true },
+          { id: 'rating', label: '전체적인 평가', type: 'radio', required: true, options: ['매우 좋음', '좋음', '보통', '나쁨', '매우 나쁨'] }
+        );
+      }
+      
+      const fallbackSchema = {
+        title: promptText.includes('학생') ? '학생 상담 설문' : 
+               promptText.includes('만족도') ? '만족도 조사' :
+               promptText.includes('상담') ? '상담 신청서' : 'AI 설문',
+        description: `요청하신 내용을 바탕으로 생성된 설문입니다: ${promptText}`,
+        questions: simpleQuestions
       };
       setSchema(fallbackSchema);
     } finally {
