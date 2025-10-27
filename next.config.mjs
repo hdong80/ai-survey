@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  trailingSlash: true,
+  // Use default output (server) so API routes run on Netlify functions
   images: {
     unoptimized: true
   }

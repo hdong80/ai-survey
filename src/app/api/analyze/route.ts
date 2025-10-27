@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
 
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
   const sys = `You are an analyst. Given survey responses, produce strictly JSON with keys: key_insights (array of strings), summary (string), stats (object with aggregates per question). Output valid JSON only.`;
   const user = JSON.stringify({
     formTitle: parsed.data.formTitle,

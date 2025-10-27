@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     // AI 분석
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     const analysisPrompt = `
       다음 설문 응답들을 분석하여 한국어로 상세한 분석 결과를 제공해주세요.
